@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model booking {
+  id           Int            @id @default(autoincrement())
+  userId       Int
+  roomId       Int
+  checkIn      DateTime
+  checkOut     DateTime
+  status       booking_status @default(PENDING)
+  createdAt    DateTime       @default(now())
+  room         room           @relation(fields: [roomId], references: [id], map: "Booking_roomId_fkey")
+  user         user           @relation(fields: [userId], references: [id], map: "Booking_userId_fkey")
+  notification notification[]
+
+  @@index([roomId, checkIn, checkOut], map: "Booking_roomId_checkIn_checkOut_idx")
+  @@index([userId], map: "Booking_userId_idx")
+}
+
+model notification {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  bookingId Int
+  type      notification_type
+  message   String            @db.VarChar(255)
+  isRead    Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  booking   booking           @relation(fields: [bookingId], references: [id], map: "Notification_bookingId_fkey")
+  user      user              @relation(fields: [userId], references: [id], map: "Notification_userId_fkey")
+
+  @@index([bookingId], map: "Notification_bookingId_fkey")
+  @@index([userId], map: "Notification_userId_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model room {
+  id            Int       @id @default(autoincrement())
+  name          String
+  capacity      Int
+  pricePerNight Decimal   @db.Decimal(10, 2)
+  imageUrl      String?   @db.VarChar(500)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  booking       booking[]
+}
+
+model user {
+  id           Int            @id @default(autoincrement())
+  name         String
+  email        String         @unique(map: "User_email_key")
+  passwordHash String         @db.VarChar(255)
+  role         user_role      @default(USER)
+  createdAt    DateTime       @default(now())
+  booking      booking[]
+  notification notification[]
+}
+
+model revokedtoken {
+  jti       String   @id @db.VarChar(64)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt], map: "RevokedToken_expiresAt_idx")
+}
+
+enum notification_type {
+  BOOKING_CREATED
+  BOOKING_CANCELLED
+}
+
+enum user_role {
+  USER
+  ADMIN
+}
+
+enum booking_status {
+  PENDING
+  APPROVED
+  CANCELLED
+  PAID
+}
