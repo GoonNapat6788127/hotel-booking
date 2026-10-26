@@ -16,7 +16,6 @@ export class RoomsController {
 
   @Post()
   @Roles(user_role.ADMIN)
-  @Post()
   create(@Body() createRoomDto: CreateRoomDto) {
     return this.roomsService.create(createRoomDto);
   }
