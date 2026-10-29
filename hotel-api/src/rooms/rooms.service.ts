@@ -3,26 +3,29 @@ import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { user_role } from '@prisma/client';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
 
 @Injectable()
 export class RoomsService {
   constructor(private readonly prisma: PrismaService) { }
 
-  async create(createRoomDto: CreateRoomDto) {
+  async create(createRoomDto: CreateRoomDto, imageUrl?: string) {
     try {
-      return await this.prisma.room.create({ data: createRoomDto });
-    }
-    catch (e: any) {
-      throw new BadRequestException(e?.message ?? 'Create room failed',);
+      return await this.prisma.room.create({
+        data: { ...createRoomDto, ...(imageUrl && { imageUrl }) },
+      });
+    } catch (e: any) {
+      throw new BadRequestException(e?.message ?? 'Create room failed');
     }
   }
 
   async findAll(role: user_role) {
     return this.prisma.room.findMany({
-    where: role === user_role.ADMIN
-      ? {}
-      : { isActive: true },
-  });
+      where: role === user_role.ADMIN
+        ? {}
+        : { isActive: true },
+    });
   }
 
   async findOne(id: number, role: user_role) {
@@ -116,4 +119,21 @@ export class RoomsService {
       );
     }
   }
+
+  async setImage(id: number, role: user_role, imageUrl: string) {
+  const room = await this.findOne(id, role); // 404 if not found
+  const oldImageUrl = room.imageUrl;
+
+  const updated = await this.prisma.room.update({
+    where: { id },
+    data: { imageUrl },
+  });
+
+  // delete the previous local file so its URL stops working
+  if (oldImageUrl?.startsWith('/uploads/rooms/')) {
+    await unlink(join(process.cwd(), oldImageUrl)).catch(() => {});
+  }
+
+  return updated;
+}
 }

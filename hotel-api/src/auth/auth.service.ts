@@ -81,6 +81,6 @@ export class AuthService {
     });
     await this.prisma.revokedtoken.deleteMany({ where: { expiresAt: { lt: new Date() } } });
 
-    return { message: 'Logged out successfully', data: null };
+    return { message: 'Logged out successfully'};
   }
 }

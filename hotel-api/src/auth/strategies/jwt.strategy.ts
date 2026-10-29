@@ -21,6 +21,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     async validate(payload: any) {
         const revoked = await this.prisma.revokedtoken.findUnique({ where: { jti: payload.jti } });
         if (revoked) throw new UnauthorizedException('Token has been revoked (logged out)');
-        return { id: payload.sub, email: payload.email, role: payload.role };
+        return {
+            id: payload.sub,
+            email: payload.email,
+            role: payload.role,
+            jti: payload.jti,
+            exp: payload.exp,
+        };
     }
 }
