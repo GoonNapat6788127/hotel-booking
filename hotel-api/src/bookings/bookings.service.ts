@@ -1,8 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateBookingDto } from './dto/update-booking.dto';
 import { notification_type, Prisma, booking_status, booking } from '@prisma/client';
+import { overlapWhere } from './booking-overlap';
 
 @Injectable()
 export class BookingsService {
@@ -20,14 +20,6 @@ export class BookingsService {
     if (checkIn >= checkOut) {
       throw new BadRequestException('Check-in must be before check-out');
     }
-  }
-
-  overlapWhere(checkIn: Date, checkOut: Date): Prisma.bookingWhereInput {
-    return {
-      status: { not: booking_status.CANCELLED },
-      checkIn: { lt: checkOut },
-      checkOut: { gt: checkIn },
-    };
   }
 
   private validateStatusTransition(
@@ -93,7 +85,7 @@ export class BookingsService {
       if (!room) throw new NotFoundException(`Room ${dto.roomId} not found`);
 
       const conflict = await tx.booking.findFirst({
-        where: { roomId: room.id, ...this.overlapWhere(dto.checkIn, dto.checkOut) },
+        where: { roomId: room.id, ...overlapWhere(dto.checkIn, dto.checkOut) },
         select: { id: true },
       });
       if (conflict) throw new ConflictException('Room is already booked for the selected dates');

@@ -1,0 +1,6 @@
+DATABASE_URL="mysql://root:@localhost:3306/hotel_booking"
+ADMIN_EMAIL="admintest@hotel.com"
+ADMIN_PASSWORD="Admin1234!"
+JWT_SECRET="brown-fox-jumps-over-the-lazy-dog"
+JWT_EXPIRES_IN="30m"
+BCRYPT_ROUNDS="12"

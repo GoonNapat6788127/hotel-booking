@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, UseInterceptors, BadRequestException, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, UseInterceptors, BadRequestException, UploadedFile, Query } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
@@ -12,6 +12,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
 import { diskStorage } from 'multer';
+import { SearchRoomsDto } from './dto/search-room.dto';
 
 const roomImageInterceptor = FileInterceptor('file', {
   storage: diskStorage({
@@ -36,6 +37,11 @@ export class RoomsController {
   @Get()
   findAll(@CurrentUser() user: AuthUser) {
     return this.roomsService.findAll(user.role);
+  }
+
+  @Get('search')
+  search(@Query() query: SearchRoomsDto) {
+    return this.roomsService.search(query);
   }
 
   @Get(':id')
@@ -68,8 +74,14 @@ export class RoomsController {
 
   @Patch(':id')
   @Roles(user_role.ADMIN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateRoomDto: UpdateRoomDto) {
-    return this.roomsService.update(id, updateRoomDto);
+  @UseInterceptors(roomImageInterceptor)
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateRoomDto: UpdateRoomDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    const imageUrl = file ? `/uploads/rooms/${file.filename}` : undefined;
+    return this.roomsService.update(id, updateRoomDto, imageUrl);
   }
 
   @Patch(':id/disable')
@@ -89,4 +101,5 @@ export class RoomsController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.roomsService.remove(id);
   }
+
 }
