@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,6 +11,7 @@ import { overlapWhere } from '../bookings/booking-overlap';
 @Injectable()
 export class RoomsService {
   constructor(private readonly prisma: PrismaService) { }
+  private readonly logger = new Logger(RoomsService.name);
 
   // delete a local room image; never throws
   private async deleteLocalImage(imageUrl?: string | null) {
@@ -25,6 +26,8 @@ export class RoomsService {
         data: { ...createRoomDto, ...(imageUrl && { imageUrl }) },
       });
 
+      this.logger.log(`Room created id=${room.id}`);
+
       return {
         message: 'Room created successfully',
         data: room,
@@ -32,6 +35,7 @@ export class RoomsService {
     } catch (e: any) {
       // create failed -> remove the uploaded file
       await this.deleteLocalImage(imageUrl);
+      this.logger.error(`Create room failed: ${e?.message}`);
       throw new BadRequestException(e?.message ?? 'Create room failed');
     }
   }
@@ -53,6 +57,7 @@ export class RoomsService {
     });
 
     if (!room) {
+      this.logger.warn(`Room ${id} not found`);
       throw new NotFoundException(`Room ${id} not found`);
     }
 
@@ -76,6 +81,8 @@ export class RoomsService {
         await this.deleteLocalImage(existing.imageUrl);
       }
 
+      this.logger.log(`Room updated id=${id}`);
+
       return {
         message: `Room ${id} updated successfully`,
         data: updated,
@@ -85,6 +92,7 @@ export class RoomsService {
       // failed -> remove the NEW file multer already saved
       await this.deleteLocalImage(imageUrl);
 
+      this.logger.warn(`Update room ${id} failed: ${e?.message}`);
       if (e instanceof NotFoundException) throw e;
       if (e?.code === 'P2025') {
         throw new NotFoundException(`Room with ID ${id} not found`);
@@ -103,6 +111,8 @@ export class RoomsService {
       // DB delete succeeded -> remove the image file
       await this.deleteLocalImage(deleted.imageUrl);
 
+      this.logger.log(`Room removed id=${id}`);
+
       return {
         message: `Room ${id} removed successfully`,
         data: deleted,
@@ -110,15 +120,18 @@ export class RoomsService {
     }
     catch (e: any) {
       if (e?.code === 'P2025') {
+        this.logger.warn(`Delete room ${id} failed: not found`);
         throw new NotFoundException(`Room with ID ${id} not found`);
       }
 
       if (e?.code === 'P2003') {
+        this.logger.warn(`Delete room ${id} blocked: it has related bookings`);
         throw new BadRequestException(
           'Cannot delete this room because it has related bookings',
         );
       }
 
+      this.logger.error(`Delete room ${id} failed: ${e?.message}`);
       throw new BadRequestException(
         e?.message ?? 'Delete room failed',
       );
@@ -127,6 +140,7 @@ export class RoomsService {
 
   async enable(id: number) {
     try {
+      this.logger.log(`Enabling room id=${id}`);
       return await this.prisma.room.update({
         where: { id },
         data: { isActive: true },
@@ -134,9 +148,11 @@ export class RoomsService {
     }
     catch (e: any) {
       if (e?.code === 'P2025') {
+        this.logger.warn(`Enable room ${id} failed: not found`);
         throw new NotFoundException(`Room with ID ${id} not found`);
       }
 
+      this.logger.error(`Enable room ${id} failed: ${e?.message}`);
       throw new BadRequestException(
         e?.message ?? 'Enable room failed',
       );
@@ -145,6 +161,7 @@ export class RoomsService {
 
   async disable(id: number) {
     try {
+      this.logger.log(`Disabling room id=${id}`);
       return await this.prisma.room.update({
         where: { id },
         data: { isActive: false },
@@ -152,9 +169,11 @@ export class RoomsService {
     }
     catch (e: any) {
       if (e?.code === 'P2025') {
+        this.logger.warn(`Disable room ${id} failed: not found`);
         throw new NotFoundException(`Room with ID ${id} not found`);
       }
 
+      this.logger.error(`Disable room ${id} failed: ${e?.message}`);
       throw new BadRequestException(
         e?.message ?? 'Disable room failed',
       );
@@ -174,6 +193,8 @@ export class RoomsService {
       // success -> remove the previous file
       await this.deleteLocalImage(oldImageUrl);
 
+      this.logger.log(`Room image updated id=${id}`);
+
       return {
         message: `Room ${id} image updated successfully`,
         data: updated,
@@ -182,17 +203,21 @@ export class RoomsService {
     catch (e) {
       // failed -> remove the NEW file that multer already saved
       await this.deleteLocalImage(imageUrl);
+      this.logger.warn(`Set image for room ${id} failed: ${(e as any)?.message}`);
       throw e; // keep the original 404 / error
     }
   }
 
   async search(q: SearchRoomsDto) {
     const { checkIn, checkOut, capacity, maxPrice } = q;
+    this.logger.log(`Searching rooms checkIn=${checkIn ?? '-'} checkOut=${checkOut ?? '-'} capacity=${capacity ?? '-'} maxPrice=${maxPrice ?? '-'}`);
 
     if ((checkIn && !checkOut) || (!checkIn && checkOut)) {
+      this.logger.warn('Search rooms rejected: checkIn and checkOut must be sent together');
       throw new BadRequestException('Provide both checkIn and checkOut');
     }
     if (checkIn && checkOut && checkIn >= checkOut) {
+      this.logger.warn('Search rooms rejected: check-in must be before check-out');
       throw new BadRequestException('Check-in must be before check-out');
     }
 

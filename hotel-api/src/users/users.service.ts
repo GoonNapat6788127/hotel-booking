@@ -15,7 +15,10 @@ export class UsersService {
   // FR-3
   async getProfile(id: number) {
     const user = await this.prisma.user.findUnique({ where: { id }, select: SAFE_USER_SELECT });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) {
+      this.logger.warn(`User ${id} not found`);
+      throw new NotFoundException('User not found');
+    }
     return user;
   }
 
@@ -31,6 +34,7 @@ export class UsersService {
       return { message: 'Profile updated successfully', data: user };
     }
     catch (e: any){
+      this.logger.error(`Update profile failed id=${id}: ${e?.message}`);
       throw e;
     }
   }

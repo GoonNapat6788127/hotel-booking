@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -13,6 +13,8 @@ const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 10;
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly jwtService: JwtService,
@@ -26,6 +28,7 @@ export class AuthService {
         });
 
         if (existingUser) {
+            this.logger.warn('Register rejected: email already exists');
             throw new ConflictException('User with this email already exists');
         }
 
@@ -40,6 +43,8 @@ export class AuthService {
             },
             select: SAFE_USER_SELECT,
         });
+
+        this.logger.log(`User registered id=${user.id} role=${user.role}`);
 
         return {
             message: 'User registered successfully',
@@ -64,9 +69,11 @@ export class AuthService {
     async login(LoginDto: LoginDto) {
         const user = await this.validateUser(LoginDto.email, LoginDto.password);
         if (!user) {
+            this.logger.warn('Login failed: invalid credentials');
             throw new UnauthorizedException('Invalid credentials');
         }   
 
+        this.logger.log(`User logged in id=${user.id}`);
         const payload = { sub: user.id, email: user.email, role: user.role };
         return {
             access_token: this.jwtService.sign(payload, { jwtid: randomUUID() }),
@@ -81,6 +88,7 @@ export class AuthService {
     });
     await this.prisma.revokedtoken.deleteMany({ where: { expiresAt: { lt: new Date() } } });
 
+    this.logger.log(`User logged out id=${user.id}`);
     return { message: 'Logged out successfully'};
   }
 }

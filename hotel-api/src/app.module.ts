@@ -24,14 +24,18 @@ import { NotificationsModule } from './notifications/notifications.module';
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: async () => ({
-        stores: [createKeyv('redis://127.0.0.1:6379')],
+        stores: [
+          createKeyv(
+            `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`,
+          ),
+        ],
         ttl: 60_000, // milliseconds
       }),
     }),
 
     ThrottlerModule.forRoot([{
       ttl: 60000, // 1 minute
-      limit: 100  ,  // max requests per minute
+      limit: 100,  // max requests per minute
     }]),
   ],
   controllers: [AppController],
