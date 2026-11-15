@@ -26,6 +26,7 @@ import { NotificationsModule } from './notifications/notifications.module';
       useFactory: async () => ({
         stores: [
           createKeyv(
+            process.env.REDIS_URL ||
             `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`,
           ),
         ],
