@@ -83,7 +83,7 @@ export class BookingsService {
 
     const booking = await this.prisma.$transaction(async (tx) => {
       const locked = await tx.$queryRaw<{ id: number }[]>(
-        Prisma.sql`SELECT id FROM \`Room\` WHERE id = ${dto.roomId} FOR UPDATE`,
+        Prisma.sql`SELECT id FROM \`room\` WHERE id = ${dto.roomId} FOR UPDATE`,
       );
 
       const room = locked.length ? await tx.room.findFirst({ where: { id: dto.roomId, isActive: true } }) : null;
