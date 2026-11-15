@@ -36,7 +36,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 
     ThrottlerModule.forRoot([{
       ttl: 60000, // 1 minute
-      limit: 100,  // max requests per minute
+      limit: Number(process.env.THROTTLE_LIMIT || 100),  // max requests per minute
     }]),
   ],
   controllers: [AppController],
