@@ -3,7 +3,7 @@
 -- Identical to prisma/migrations/20261011000000_init/migration.sql plus
 -- CHECK constraints and seed data.  Run:
 --     mysql -u root -p < database/schema.sql
--- Default admin:  admin@hotel.com / Admin1234!   (change it!)
+-- Default admin:  admin@hotel.com / Admin1234!
 -- =====================================================================
 DROP DATABASE IF EXISTS hotel_booking;
 CREATE DATABASE IF NOT EXISTS hotel_booking DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

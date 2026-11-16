@@ -2,7 +2,7 @@ name: hotel-booking
 
 services:
   api:
-    build: .
+    image: goonnapat6788127/hotel-booking-api:1.0.0
     ports:
       - "127.0.0.1:3000:3000"
     env_file: .env
@@ -19,7 +19,7 @@ services:
       - uploads:/app/uploads
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: [ "CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -36,7 +36,7 @@ services:
       - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent" ]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -48,7 +48,7 @@ services:
       - redisdata:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 10
